@@ -54,7 +54,7 @@ class CocoTrainDataset(Dataset):
     def gen_paf(self, img, kpt):
         _, w, h = img.shape()
         paf_num = len(self.BODY_PARTS_KPT_IDS)
-        pafmap = np.zeros([2*paf_num+1, w // self.stride, h // self.stride])
+        pafmap = np.zeros([2*paf_num, w // self.stride, h // self.stride])
         mapped_w = w//self.stride
         mapped_h = h//self.stride
         for c in range(0, 2*paf_num, 2):
