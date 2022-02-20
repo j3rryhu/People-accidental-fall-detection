@@ -34,7 +34,7 @@ class BodyPoseModel(nn.Module):
             'conv5_2_l1': [128, 128, 3, 1, 1],
             'conv5_3_l1': [128, 128, 3, 1, 1],
             'conv5_4_l1': [128, 512, 1, 1, 0],
-            'conv5_5_l1': [512, 38, 1, 1, 0]
+            'conv5_5_l1': [512, 19, 1, 1, 0]
         }
         block1_2 = {
             'conv5_1_l2': [128, 128, 3, 1, 1],
@@ -56,7 +56,7 @@ class BodyPoseModel(nn.Module):
                 'conv_stage{}_4_l1'.format(i): [128, 128, 7, 1, 3],
                 'conv_stage{}_5_l1'.format(i): [128, 128, 7, 1, 3],
                 'conv_stage{}_6_l1'.format(i): [128, 128, 1, 1, 0],
-                'conv_stage{}_7_l1'.format(i): [128, 38, 1, 1, 0],
+                'conv_stage{}_7_l1'.format(i): [128, 19, 1, 1, 0],
             }
             block_l2 = {
                 'conv_stage{}_1_l2'.format(i): [185, 128, 7, 1, 3],
@@ -65,7 +65,7 @@ class BodyPoseModel(nn.Module):
                 'conv_stage{}_4_l2'.format(i): [128, 128, 7, 1, 3],
                 'conv_stage{}_5_l2'.format(i): [128, 128, 7, 1, 3],
                 'conv_stage{}_6_l2'.format(i): [128, 128, 1, 1, 0],
-                'conv_stage{}_7_l2'.format(i): [128, 19, 1, 1, 0],
+                'conv_stage{}_7_l2'.format(i): [128, 38, 1, 1, 0],
             }
             self.blocks['block{}_1'.format(i)] = make_block(block_l1, no_relu_layers)
             self.blocks['block{}_2'.format(i)] = make_block(block_l2, no_relu_layers)

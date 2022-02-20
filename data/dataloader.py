@@ -8,13 +8,12 @@ test_kpt_file = '../COCO dataset/annotations/person_keypoints_val2017.json'
 
 
 class CocoTrainDataset(Dataset):
-    def __init__(self, image_folder, sigma, stride, thickness,paf_thresh, transform=None):
+    def __init__(self, image_folder, sigma, stride, thickness, transform=None):
         super(CocoTrainDataset, self).__init__()
-        self.train_kpt_file = '../COCO dataset/annotations/person_keypoints_train2017.json'
+        self.train_kpt_file = image_folder + '/annotations/person_keypoints_train2017.json'
         self.img_folder = image_folder
         self.sigma = sigma
         self.thickness = thickness
-        self.paf_tresh = paf_thresh
         self.stride = stride
         self.transform = transform
         self.BODY_PARTS_KPT_IDS = [[1, 8], [8, 9], [9, 10], [1, 11], [11, 12], [12, 13], [1, 2], [2, 3], [3, 4], [2, 16],
