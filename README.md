@@ -1,4 +1,4 @@
-#  People's accidental fall detection (In progress)
+#  People's accidental fall detection
 
 ## 1. Introduction
 
@@ -15,6 +15,10 @@ Windows10 20H2
 ## 3. Requirements
 
 Run `pip install -r requirements.txt`
+
+## 4. Preprocessing
+
+Run convert_annotation.py first to generate a new compiled json file.
 
 ## 4. Training
 
