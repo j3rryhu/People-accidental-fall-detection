@@ -1,8 +1,16 @@
+'''
+ loadImgs is used to get the information on the image
+ id means the specified number for each image
+'''
 from pycocotools.coco import COCO
 from torch.utils.data import Dataset
 from data.data_processing import *
+from torchvision import transforms
 import numpy as np
 import math
+from PIL import Image
+import os
+import json
 
 test_kpt_file = '../COCO dataset/annotations/person_keypoints_val2017.json'
 
@@ -10,7 +18,8 @@ test_kpt_file = '../COCO dataset/annotations/person_keypoints_val2017.json'
 class CocoTrainDataset(Dataset):
     def __init__(self, image_folder, sigma, stride, thickness, transform=None):
         super(CocoTrainDataset, self).__init__()
-        self.train_kpt_file = image_folder + '/annotations/person_keypoints_train2017.json'
+        self.train_kpt_file = './train_annotation.json'
+        self.original_file = './COCO dataset/annotations/person_keypoints_train2017.json'
         self.img_folder = image_folder
         self.sigma = sigma
         self.thickness = thickness
@@ -18,30 +27,46 @@ class CocoTrainDataset(Dataset):
         self.transform = transform
         self.BODY_PARTS_KPT_IDS = [[1, 8], [8, 9], [9, 10], [1, 11], [11, 12], [12, 13], [1, 2], [2, 3], [3, 4], [2, 16],
                       [1, 5], [5, 6], [6, 7], [5, 17], [1, 0], [0, 14], [0, 15], [14, 16], [15, 17]]
-        self.coco = COCO(self.train_kpt_file)
-        self.dataset = self.coco.dataset
+        self.coco = COCO(self.original_file)
+        self.ids = self.coco.getImgIds()
+        with open(self.train_kpt_file, 'r') as f:
+            self.ann_dict = json.load(f)
+        self.size = (75, 100)
 
     def __getitem__(self, idx):
-        img = self.coco.loadImgs(idx)
-        np.transpose(img, [2, 0, 1])
-        ann_id = self.coco.getAnnIds(imgIds=idx)
-        annotations_per = self.coco.loadAnns(ann_id)
+        img_id = self.ann_dict[str(idx)]['image_id']
+        info = self.coco.loadImgs(img_id)
+        img_name = info[0]['file_name']
+        img = Image.open(os.path.join(self.img_folder, 'train2017', img_name))
+        img = img.convert('RGB')
         kpts = []
-        for ann in annotations_per:
-            kpts.append(ann['keypoints'])
-        for keypoint_group in kpts:
-            convert_keypoint(keypoint_group)
+        for i in range(0, len(self.ann_dict[str(idx)]['keypoints'])):
+            kpts.append(self.ann_dict[str(idx)]['keypoints'][i])
+        kpts = convert_keypoint(kpts)
+        w, h = img.size
+        x_scale = 150 / w
+        y_scale = 142 / h
+        for kpt in kpts:
+            kpt[0] *= x_scale
+            kpt[1] *= y_scale
+        img = img.resize((150, 142))
+        img = self.transform(img)
         heatmap = self.gen_heatmap(img, kpts)
         paf_map = self.gen_paf(img, kpts)
-        return img, heatmap, paf_map
+        sample = {
+            'image': img,
+            'heatmap': heatmap,
+            'paf_map': paf_map
+        }
+        return sample
 
     def __len__(self):
-        return len(self.dataset['annotations'])
+        return len(self.ann_dict)
 
     def gen_heatmap(self, img, kpts):
         kpt_num = 18
-        _, w, h = img.shape()
-        heatmap = np.zeros([kpt_num+1, w//self.stride, h//self.stride])
+        _, h, w = img.shape
+        heatmap = np.zeros([kpt_num+1, h//self.stride, w//self.stride])
         for c in range(0, kpt_num):
             if kpts[c][2]==1:
                 self.gaussian(heatmap[c], kpts[c])
@@ -51,9 +76,9 @@ class CocoTrainDataset(Dataset):
         return heatmap
 
     def gen_paf(self, img, kpt):
-        _, w, h = img.shape()
+        _, h, w = img.shape
         paf_num = len(self.BODY_PARTS_KPT_IDS)
-        pafmap = np.zeros([2*paf_num, w // self.stride, h // self.stride])
+        pafmap = np.zeros([2*paf_num, h // self.stride, w // self.stride])
         mapped_w = w//self.stride
         mapped_h = h//self.stride
         for c in range(0, 2*paf_num, 2):
@@ -90,15 +115,13 @@ class CocoTrainDataset(Dataset):
                         pafmap[c+1, y, x] = y12
         return pafmap
 
-
-
     def gaussian(self, heatmap, kpt):
-        _, mapped_w, mapped_h = heatmap.shape()
+        mapped_h, mapped_w = heatmap.shape
         x, y, a = kpt
         mapped_x = x / self.stride
         mapped_y = y / self.stride
-        for i in range(0, mapped_w):
-            for j in range(0, mapped_h):
+        for i in range(0, mapped_h):
+            for j in range(0, mapped_w):
                 gaussian_val = math.exp(-((i-mapped_x)**2+(j-mapped_y)**2)/self.sigma/self.sigma)
                 heatmap[i][j] = max(heatmap[i][j], gaussian_val)
 

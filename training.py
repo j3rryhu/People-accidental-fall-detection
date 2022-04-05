@@ -9,17 +9,18 @@ import numpy as np
 
 
 transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     transforms.RandomHorizontalFlip(p=0.4),
     transforms.RandomRotation((-60, 60)),
-
 ])
-train_dataset = CocoTrainDataset('./COCO dataset', sigma=7, stride=8, thickness=1)
-trainloader = data.DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=0)
+train_dataset = CocoTrainDataset('./COCO dataset', sigma=7, stride=8, thickness=1, transform=transform)
+trainloader = data.DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=0)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = BodyPoseModel().to(device)
 criterion = nn.MSELoss()
 optimizer = optim.SGD(net.parameters(), lr=0.0005)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1, last_epoch=-1)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200, eta_min=5e-6)
 torch.set_num_threads(8)
 
 if torch.cuda.is_available():
@@ -30,22 +31,23 @@ else:
 running_loss = 0.0
 count = 0
 for epoch in range(280):
+    print('------epoch {}------'.format(epoch))
     state = {'net': net.state_dict(),
              'optimizer': optimizer.state_dict(),
              'epoch': epoch}
     for i, sample in enumerate(trainloader, 0):
         count += 1
-        img, heatmap, pafmap = sample
+        img, heatmap, pafmap = sample.values()
         heatmap = torch.tensor(heatmap)
-        heatmap = heatmap.cuda()
-        img = torch.tensor(img)
+        heatmap = heatmap.to(device)
         img = img.to(device)
         pafmap = torch.tensor(pafmap)
-        pafmap = pafmap.cuda()
+        pafmap = pafmap.to(device)
         optimizer.zero_grad()
         out1, out2 = net(img)
-        out = np.vstack([out1, out2])
-        groundtruth = np.vstack([heatmap, pafmap])
+        out = torch.cat([out1, out2], 1)
+        groundtruth = torch.cat([heatmap, pafmap], 1)
+        groundtruth = groundtruth.float()
         loss = criterion(out, groundtruth)
         loss.backward()
         optimizer.step()

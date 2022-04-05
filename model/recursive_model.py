@@ -82,10 +82,13 @@ class BodyPoseModel(nn.Module):
 
     def forward(self, x):
         x = self.block0(x)
-        for i in range(1, 6):
-            l1 = self.blocks['block{}_1'.format(i)](x)
-            l2 = self.blocks['block{}_2'.format(i)](x)
-            x = torch.cat([l1, l2, x], 1)
+        l1 = self.blocks['block1_1'](x)
+        l2 = self.blocks['block1_2'](x)
+        for i in range(2, 6):
+            cat_x = torch.cat([l1, l2, x], 1)
+            l1 = self.blocks['block{}_1'.format(i)](cat_x)
+            l2 = self.blocks['block{}_2'.format(i)](cat_x)
+        x = torch.cat([l1, l2, x], 1)
         l1 = self.block6_1(x)
         l2 = self.block6_2(x)
         return l1, l2

@@ -11,7 +11,7 @@ def convert_keypoint(kpt):
         ann = [x,y,a]
         packed_kpt.append(ann)
     if packed_kpt[5][2]!=0 and packed_kpt[6][2]!=0:
-        packed_kpt.insert(1, [(packed_kpt[5][0] + packed_kpt[6][0]) / 2, (packed_kpt[5][1] + packed_kpt[6][1]) / 2, 0])
+        packed_kpt.insert(1, [(packed_kpt[5][0] + packed_kpt[6][0]) / 2, (packed_kpt[5][1] + packed_kpt[6][1]) / 2, 1])
     else:
-        packed_kpt.insert([0,0,0])
+        packed_kpt.insert(1, [0,0,0])
     return packed_kpt
